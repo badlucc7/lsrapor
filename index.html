@@ -143,8 +143,9 @@
         <label class="field">Bitiş <input type="date" id="to"></label>
         <div class="field" id="eskiWrap">Eski datalar
           <div class="seg" role="group" aria-label="Eski datalar">
-            <button type="button" data-eski="1" aria-pressed="true">Dahil</button>
             <button type="button" data-eski="0" aria-pressed="false">Dahil değil</button>
+            <button type="button" data-eski="1" aria-pressed="true">Dönem içi booklar</button>
+            <button type="button" data-eski="all" aria-pressed="false">Tümü (tarih dışı dahil)</button>
           </div>
         </div>
         <label class="check"><input type="checkbox" id="fresh" checked> Önce Kommo'dan güncelle</label>
@@ -221,7 +222,7 @@
   function renderCards(m) {
     const pct = (a, b) => (b ? (a / b * 100).toFixed(1).replace('.', ',') + '%' : '0%');
     const items = [
-      ['Yeni Lead', m.yeni.toLocaleString('tr-TR'), !m.eskiDahil ? 'Eski datalar dahil değil' : m.eski + ' eski lead booklandı'],
+      ['Yeni Lead', m.yeni.toLocaleString('tr-TR'), !m.eskiDahil ? 'Eski datalar dahil değil' : m.eski + (m.eskiMod === 'all' ? ' eski lead (booklama tarihi dönem dışı dahil)' : ' eski lead dönemde booklandı')],
       ['Booked', m.booked, m.yeniBooked + ' yeni + ' + m.eskiBooked + ' eski'],
       ['Booked Oranı (Yeni)', pct(m.yeniBooked, m.yeni), 'yeni booked / yeni lead'],
       ['Ciro', '£' + Math.round(m.ciro).toLocaleString('tr-TR'), m.eskiDahil ? 'yeni + eski booklar' : 'sadece yeni leadler'],
@@ -243,20 +244,32 @@
     $('view').innerHTML = REPORT.sheets[activeTab].tables.map(tableHtml).join('');
   }
 
+  // Güncelleme sonucunu açıkça anlat: atlandı / yarım kaldı / kaç kayıt değişti
+  function refreshNote(rf) {
+    if (rf.skipped && rf.result && rf.result.skipped) return { t: 'Başka bir güncelleme şu an çalışıyor, birkaç dakika sonra tekrar deneyin.', err: true };
+    if (rf.skipped) return { t: 'Veri 10 dakikadan yeni olduğu için Kommo\'dan tekrar çekilmedi (son güncelleme saati bu yüzden değişmedi).', err: false };
+    const x = rf.result || {};
+    if (x.skipped) return { t: 'Başka bir güncelleme şu an çalışıyor, birkaç dakika sonra tekrar deneyin.', err: true };
+    if (x.complete === false) return { t: 'Güncelleme YARIM kaldı (süre doldu). Tekrar "Veriyi Şimdi Güncelle"ye basın.', err: true };
+    return { t: 'Kommo güncellendi: ' + (x.changed || 0) + ' lead değişti.', err: false };
+  }
+
   async function loadReport(skipRefresh) {
     const from = $('from').value, to = $('to').value;
     if (!from || !to || from > to) { showMsg('Geçerli bir tarih aralığı seçin.', true); return; }
     $('go').disabled = true; $('xls').disabled = true;
+    let note = null;
     try {
       if (!skipRefresh && $('fresh').checked) {
         showMsg('Kommo\'dan güncel veri çekiliyor (1-2 dk sürebilir)...');
         const rf = await api('refresh');
-        if (!rf.ok) { showMsg(rf.error || 'Güncelleme hatası', true); if (/PIN/.test(rf.error || '')) logout(); $('go').disabled = false; return; }
+        if (!rf.ok) { showMsg('Kommo güncelleme HATASI: ' + (rf.error || 'bilinmeyen hata'), true); if (/PIN/.test(rf.error || '')) logout(); $('go').disabled = false; return; }
+        note = refreshNote(rf);
       }
       showMsg('Rapor hazırlanıyor...');
       const r = await api('report', { from, to, clinic: $('clinic').value, eski: ESKI });
       if (!r.ok) { showMsg(r.error || 'Hata', true); if (/PIN/.test(r.error || '')) logout(); $('go').disabled = false; return; }
-      REPORT = r; activeTab = Math.min(activeTab, r.sheets.length - 1); showMsg('');
+      REPORT = r; activeTab = Math.min(activeTab, r.sheets.length - 1); showMsg(note ? note.t : '', note && note.err);
       renderSync(r.lastSync); renderCards(r.meta); renderTabs();
       $('xls').disabled = false;
     } catch (e) { showMsg('Bağlantı hatası: ' + e.message, true); }
@@ -270,7 +283,7 @@
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const m = REPORT.meta;
-    a.download = (m.clinic === 'MTT' ? 'mtt' : 'lara_smile') + '_rapor_' + m.from + '_' + m.to + (m.eskiDahil === false ? '_eskisiz' : '') + '.xlsx';
+    a.download = (m.clinic === 'MTT' ? 'mtt' : 'lara_smile') + '_rapor_' + m.from + '_' + m.to + (m.eskiMod === 'off' ? '_eskisiz' : m.eskiMod === 'all' ? '_eski_tumu' : '') + '.xlsx';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
@@ -279,8 +292,8 @@
     $('refresh').disabled = true; showMsg('Kommo\'dan son değişiklikler çekiliyor (1-2 dk sürebilir)...');
     try {
       const r = await api('refresh');
-      if (!r.ok) { showMsg(r.error || 'Hata', true); }
-      else { showMsg(r.skipped ? r.message : 'Veri güncellendi.'); renderSync(r.lastSync); }
+      if (!r.ok) { showMsg('Kommo güncelleme HATASI: ' + (r.error || 'bilinmeyen hata'), true); }
+      else { const n = refreshNote(r); showMsg(n.t, n.err); renderSync(r.lastSync); }
     } catch (e) { showMsg('Bağlantı hatası: ' + e.message, true); }
     $('refresh').disabled = false;
   }
@@ -313,7 +326,7 @@
   // Eski datalar anahtarı: Kommo'dan tekrar çekmez, sadece raporu yeniden hesaplatır
   $('eskiWrap').addEventListener('click', (e) => {
     const v = e.target.dataset.eski; if (v === undefined) return;
-    ESKI = v === '1';
+    ESKI = v === '0' ? false : (v === 'all' ? 'all' : true);
     $('eskiWrap').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.eski === v)));
     if (REPORT) loadReport(true);
   });
