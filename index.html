@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Lara Smile Lead Raporu</title>
+<style>
+  :root {
+    --bg: #f3f5f8; --card: #ffffff; --ink: #1c2733; --muted: #647385; --line: #dfe5ec;
+    --navy: #1f4e78; --btn: #1f4e78; --accent: #0e8f8a; --head: #1f4e78; --headtxt: #ffffff; --total: #e4ebf5; --warn: #b4531a; --err: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #11171f; --card: #19222d; --ink: #e6ebf1; --muted: #93a1b2; --line: #2b3745;
+      --navy: #7fb2e0; --btn: #2d6a9f; --accent: #3fc1b9; --head: #23405c; --headtxt: #f1f5fa; --total: #243445; --warn: #e0925a; --err: #f0877f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0; color: var(--navy); letter-spacing: .2px; }
+  .sync { color: var(--muted); font-size: 12px; }
+  .sync.stale { color: var(--warn); }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  select, input[type=date], input[type=password] {
+    font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-height: 38px;
+  }
+  button { font: inherit; border-radius: 8px; padding: 8px 14px; min-height: 38px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--navy); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.primary { background: var(--btn); color: #fff; border-color: var(--btn); }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; }
+  .presets button { padding: 6px 10px; min-height: 32px; font-size: 12px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 14px 0; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .kpi .l { font-size: 12px; color: var(--muted); }
+  .kpi .v { font-size: 24px; font-weight: 650; color: var(--navy); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .kpi .s { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; margin: 6px 0 12px; }
+  .tabs button { border-radius: 999px; padding: 6px 14px; min-height: 34px; }
+  .tabs button[aria-selected=true] { background: var(--btn); color: #fff; border-color: var(--btn); }
+  h2 { font-size: 14px; color: var(--navy); margin: 18px 0 6px; }
+  .note { font-size: 12px; color: var(--muted); margin: -2px 0 6px; font-style: italic; }
+  .scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 10px; border: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  th { background: var(--head); color: var(--headtxt); text-align: center; font-weight: 600; white-space: normal; }
+  td:first-child, th:first-child { text-align: left; }
+  tr.total td { background: var(--total); font-weight: 700; }
+  .msg { padding: 10px 12px; border-radius: 8px; margin: 12px 0; border: 1px solid var(--line); background: var(--card); }
+  .msg.err { color: var(--err); border-color: var(--err); }
+  #login { max-width: 360px; margin: 14vh auto 0; text-align: center; }
+  #login h1 { margin-bottom: 4px; }
+  #login p { color: var(--muted); margin: 0 0 14px; }
+  #login input { width: 100%; text-align: center; letter-spacing: 6px; font-size: 18px; margin-bottom: 10px; }
+  #login button { width: 100%; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="login" class="panel" hidden>
+    <h1>Lara Smile Lead Raporu</h1>
+    <p>Devam etmek için PIN girin</p>
+    <form id="loginForm">
+      <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" aria-label="PIN" required>
+      <button class="primary" type="submit">Giriş</button>
+    </form>
+    <div id="loginErr" class="msg err" hidden></div>
+  </section>
+
+  <main id="app" hidden>
+    <header>
+      <h1>Lara Smile Lead Raporu</h1>
+      <div class="sync" id="syncInfo">Veri durumu yükleniyor…</div>
+    </header>
+
+    <section class="panel">
+      <div class="controls">
+        <label>Klinik
+          <select id="clinic">
+            <option value="LS">Lara Smile + Premium</option>
+            <option value="MTT">MTT</option>
+          </select>
+        </label>
+        <label>Başlangıç <input type="date" id="from"></label>
+        <label>Bitiş <input type="date" id="to"></label>
+        <label style="flex-direction:row;align-items:center;gap:6px;min-height:38px"><input type="checkbox" id="fresh" checked> Önce Kommo'dan güncelle</label>
+        <button class="primary" id="go">Raporu Getir</button>
+        <button id="xls" disabled>Excel İndir</button>
+        <button id="refresh" title="Kommo'dan son değişiklikleri şimdi çek">Veriyi Şimdi Güncelle</button>
+        <button id="logout">Çıkış</button>
+      </div>
+      <div class="presets" style="margin-top:10px" aria-label="Hızlı aralıklar">
+        <button data-p="thisweek">Bu hafta</button>
+        <button data-p="lastweek">Geçen hafta</button>
+        <button data-p="thismonth">Bu ay</button>
+        <button data-p="lastmonth">Geçen ay</button>
+      </div>
+    </section>
+
+    <div id="status" class="msg" hidden></div>
+    <div id="cards" class="cards"></div>
+    <div id="tabs" class="tabs" role="tablist"></div>
+    <div id="view"></div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script src="excel.js"></script>
+<script>
+  // Apps Script web app adresi (Dağıt > Web uygulaması > /exec ile biten URL)
+  const API_URL = 'https://script.google.com/macros/s/AKfycbzolrv0DFoENqKSny_Ymgtzdj7s-sEWHPV-r-3d94t5loAzMCogLwl9H8wjRMIBic_rtA/exec';
+
+  const $ = (id) => document.getElementById(id);
+  let PIN = '', REPORT = null, activeTab = 0;
+
+  function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function setRange(a, b) { $('from').value = ymd(a); $('to').value = ymd(b); }
+  function preset(p) {
+    const t = new Date(); t.setHours(12, 0, 0, 0);
+    const dow = (t.getDay() + 6) % 7;
+    const monday = new Date(t); monday.setDate(t.getDate() - dow);
+    if (p === 'thisweek') { const e = new Date(monday); e.setDate(e.getDate() + 6); setRange(monday, e); }
+    if (p === 'lastweek') { const s = new Date(monday); s.setDate(s.getDate() - 7); const e = new Date(s); e.setDate(e.getDate() + 6); setRange(s, e); }
+    if (p === 'thismonth') setRange(new Date(t.getFullYear(), t.getMonth(), 1), new Date(t.getFullYear(), t.getMonth() + 1, 0));
+    if (p === 'lastmonth') setRange(new Date(t.getFullYear(), t.getMonth() - 1, 1), new Date(t.getFullYear(), t.getMonth(), 0));
+  }
+
+  async function api(action, extra) {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ pin: PIN, action }, extra || {})) });
+    return res.json();
+  }
+
+  function fmt(c) {
+    const v = c.v;
+    if (v === null || v === undefined) return '';
+    switch (c.fmt) {
+      case 'pct': return (v * 100).toFixed(1).replace('.', ',') + '%';
+      case 'gbp': return '£' + Math.round(v).toLocaleString('tr-TR');
+      case 'd1': return v.toFixed(1).replace('.', ',');
+      case 'int': return Math.round(v).toLocaleString('tr-TR');
+      default: return String(v);
+    }
+  }
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function showMsg(text, isErr) {
+    const m = $('status'); m.textContent = text; m.className = 'msg' + (isErr ? ' err' : ''); m.hidden = !text;
+  }
+  function renderSync(iso) {
+    const el = $('syncInfo');
+    if (!iso) { el.textContent = 'Henüz senkron yok'; el.className = 'sync stale'; return; }
+    const d = new Date(iso), mins = Math.round((Date.now() - d.getTime()) / 60000);
+    el.textContent = 'Son veri güncellemesi: ' + d.toLocaleString('tr-TR') + (mins > 150 ? ' (eski olabilir)' : '');
+    el.className = 'sync' + (mins > 150 ? ' stale' : '');
+  }
+
+  function renderCards(m) {
+    const items = [
+      ['Yeni Lead', m.yeni.toLocaleString('tr-TR'), m.eski + ' eski lead booklandı'],
+      ['Booked', m.booked, m.yeniBooked + ' yeni + ' + m.eskiBooked + ' eski'],
+      ['Booked Oranı (Yeni)', m.yeni ? (m.yeniBooked / m.yeni * 100).toFixed(1).replace('.', ',') + '%' : '0%', 'yeni booked / yeni lead'],
+      ['Ciro', '£' + Math.round(m.ciro).toLocaleString('tr-TR'), 'booklanan leadler'],
+      ['Lost (Yeni)', m.lost, m.yeni ? (m.lost / m.yeni * 100).toFixed(1).replace('.', ',') + '% of yeni lead' : '']
+    ];
+    $('cards').innerHTML = items.map((i) => '<div class="kpi"><div class="l">' + esc(i[0]) + '</div><div class="v">' + esc(i[1]) + '</div><div class="s">' + esc(i[2]) + '</div></div>').join('');
+  }
+  function tableHtml(t) {
+    let h = '<h2>' + esc(t.title) + '</h2>';
+    if (t.note) h += '<div class="note">' + esc(t.note) + '</div>';
+    h += '<div class="scroll"><table><thead><tr>' + t.headers.map((x) => '<th>' + esc(x) + '</th>').join('') + '</tr></thead><tbody>';
+    t.body.forEach((r) => { h += '<tr>' + r.map((c) => '<td>' + esc(fmt(c)) + '</td>').join('') + '</tr>'; });
+    if (t.total) h += '<tr class="total">' + t.total.map((c) => '<td>' + esc(fmt(c)) + '</td>').join('') + '</tr>';
+    return h + '</tbody></table></div>';
+  }
+  function renderTabs() {
+    $('tabs').innerHTML = REPORT.sheets.map((s, i) =>
+      '<button role="tab" aria-selected="' + (i === activeTab) + '" data-i="' + i + '">' + esc(s.name) + '</button>').join('');
+    $('view').innerHTML = REPORT.sheets[activeTab].tables.map(tableHtml).join('');
+  }
+
+  async function loadReport() {
+    const from = $('from').value, to = $('to').value;
+    if (!from || !to || from > to) { showMsg('Geçerli bir tarih aralığı seçin.', true); return; }
+    $('go').disabled = true; $('xls').disabled = true;
+    try {
+      if ($('fresh').checked) {
+        showMsg('Kommo\'dan güncel veri çekiliyor (1-2 dk sürebilir)…');
+        const rf = await api('refresh');
+        if (!rf.ok) { showMsg(rf.error || 'Güncelleme hatası', true); if (/PIN/.test(rf.error || '')) logout(); $('go').disabled = false; return; }
+      }
+      showMsg('Rapor hazırlanıyor…');
+      const r = await api('report', { from, to, clinic: $('clinic').value });
+      if (!r.ok) { showMsg(r.error || 'Hata', true); if (/PIN/.test(r.error || '')) logout(); return; }
+      REPORT = r; activeTab = 0; showMsg('');
+      renderSync(r.lastSync); renderCards(r.meta); renderTabs();
+      $('xls').disabled = false;
+    } catch (e) { showMsg('Bağlantı hatası: ' + e.message, true); }
+    $('go').disabled = false;
+  }
+
+  async function downloadXlsx() {
+    if (!REPORT) return;
+    const wb = KommoExcel.buildWorkbook(ExcelJS, REPORT);
+    const buf = await wb.xlsx.writeBuffer();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const m = REPORT.meta;
+    a.download = (m.clinic === 'MTT' ? 'mtt' : 'lara_smile') + '_rapor_' + m.from + '_' + m.to + '.xlsx';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+
+  async function refreshData() {
+    $('refresh').disabled = true; showMsg('Kommo\'dan son değişiklikler çekiliyor (1-2 dk sürebilir)…');
+    try {
+      const r = await api('refresh');
+      if (!r.ok) { showMsg(r.error || 'Hata', true); }
+      else { showMsg(r.skipped ? r.message : 'Veri güncellendi.'); renderSync(r.lastSync); }
+    } catch (e) { showMsg('Bağlantı hatası: ' + e.message, true); }
+    $('refresh').disabled = false;
+  }
+
+  function logout() { sessionStorage.removeItem('pin'); PIN = ''; REPORT = null; $('app').hidden = true; $('login').hidden = false; $('pin').value = ''; }
+
+  async function enter(pin) {
+    PIN = pin;
+    const r = await api('status');
+    if (!r.ok) { PIN = ''; throw new Error(r.error || 'Giriş başarısız'); }
+    sessionStorage.setItem('pin', pin);
+    $('login').hidden = true; $('app').hidden = false;
+    renderSync(r.lastSync);
+    preset('lastweek');
+    loadReport();
+  }
+
+  $('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('loginErr').hidden = true;
+    try { await enter($('pin').value.trim()); }
+    catch (err) { $('loginErr').textContent = err.message; $('loginErr').hidden = false; }
+  });
+  $('go').addEventListener('click', loadReport);
+  $('xls').addEventListener('click', downloadXlsx);
+  $('refresh').addEventListener('click', refreshData);
+  $('logout').addEventListener('click', logout);
+  document.querySelector('.presets').addEventListener('click', (e) => { const p = e.target.dataset.p; if (p) { preset(p); loadReport(); } });
+  $('tabs').addEventListener('click', (e) => { const i = e.target.dataset.i; if (i !== undefined) { activeTab = +i; renderTabs(); } });
+
+  (async function init() {
+    if (API_URL.indexOf('BURAYA') === 0) { $('login').hidden = false; $('loginErr').textContent = 'API_URL ayarlanmamış (index.html içinde).'; $('loginErr').hidden = false; return; }
+    const saved = sessionStorage.getItem('pin');
+    if (saved) { try { await enter(saved); return; } catch (e) { sessionStorage.removeItem('pin'); } }
+    $('login').hidden = false;
+  })();
+</script>
+</body>
+</html>
