@@ -135,7 +135,9 @@
       <div class="controls">
         <label class="field">Klinik
           <select id="clinic">
-            <option value="LS">Lara Smile + Premium</option>
+            <option value="LS">Lara Smile + Premium (birlikte)</option>
+            <option value="LSA">Lara Smile</option>
+            <option value="LSP">Lara Smile Premium</option>
             <option value="MTT">MTT</option>
           </select>
         </label>
@@ -173,7 +175,7 @@
 <script src="excel.js"></script>
 <script>
   // Apps Script web app adresi (Dağıt > Web uygulaması > /exec ile biten URL)
-  const API_URL = 'https://script.google.com/macros/s/AKfycbzolrv0DFoENqKSny_Ymgtzdj7s-sEWHPV-r-3d94t5loAzMCogLwl9H8wjRMIBic_rtA/exec';
+  const API_URL = 'BURAYA_EXEC_URL';
 
   const $ = (id) => document.getElementById(id);
   let PIN = '', REPORT = null, activeTab = 0, ESKI = true;
@@ -226,7 +228,8 @@
       ['Booked', m.booked, m.yeniBooked + ' yeni + ' + m.eskiBooked + ' eski'],
       ['Booked Oranı (Yeni)', pct(m.yeniBooked, m.yeni), 'yeni booked / yeni lead'],
       ['Ciro', '£' + Math.round(m.ciro).toLocaleString('tr-TR'), m.eskiDahil ? 'yeni + eski booklar' : 'sadece yeni leadler'],
-      ['Lost (Yeni)', m.lost, pct(m.lost, m.yeni) + ' of yeni lead']
+      ['Lost (Yeni)', m.lost, pct(m.lost, m.yeni) + ' of yeni lead'],
+      ['Kalitesiz Data', m.kalitesiz, pct(m.kalitesiz, m.yeni + m.kalitesiz) + ' (SPAM, TRASH vb.)']
     ];
     $('cards').innerHTML = items.map((i) => '<div class="kpi"><div class="l">' + esc(i[0]) + '</div><div class="v">' + esc(i[1]) + '</div><div class="s">' + esc(i[2]) + '</div></div>').join('');
   }
@@ -283,7 +286,7 @@
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const m = REPORT.meta;
-    a.download = (m.clinic === 'MTT' ? 'mtt' : 'lara_smile') + '_rapor_' + m.from + '_' + m.to + (m.eskiMod === 'off' ? '_eskisiz' : m.eskiMod === 'all' ? '_eski_tumu' : '') + '.xlsx';
+    a.download = ({ MTT: 'mtt', LSA: 'lara_smile_standart', LSP: 'lara_smile_premium' }[m.clinic] || 'lara_smile') + '_rapor_' + m.from + '_' + m.to + (m.eskiMod === 'off' ? '_eskisiz' : m.eskiMod === 'all' ? '_eski_tumu' : '') + '.xlsx';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
