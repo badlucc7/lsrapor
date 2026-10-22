@@ -375,7 +375,7 @@
   $('xls').addEventListener('click', downloadXlsx);
   $('refresh').addEventListener('click', refreshData);
   $('logout').addEventListener('click', logout);
-  document.querySelector('.presets').addEventListener('click', (e) => { const p = e.target.dataset.p; if (p) { preset(p); loadReport(false); } });
+  document.querySelector('.presets').addEventListener('click', (e) => { const p = e.target.dataset.p; if (p) { preset(p); loadReport(true); } });
   $('tabs').addEventListener('click', (e) => { const i = e.target.dataset.i; if (i !== undefined) { activeTab = +i; renderTabs(); } });
   // Eski datalar anahtarı: Kommo'dan tekrar çekmez, sadece raporu yeniden hesaplatır
   $('eskiWrap').addEventListener('click', (e) => {
