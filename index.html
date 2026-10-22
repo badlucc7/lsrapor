@@ -256,7 +256,7 @@
       ['Ciro', '£' + Math.round(m.ciro).toLocaleString('tr-TR'), m.eskiDahil ? 'yeni + eski booklar' : 'sadece yeni leadler'],
       ['Lost (Yeni)', m.lost, pct(m.lost, m.yeni) + ' of yeni lead'],
       ['NoAnswer15', m.noAnswer15, 'No Answer aşamasındaki ' + m.noAnswer + ' leadden etiketli'],
-      ['Kalitesiz Data', m.kalitesiz, pct(m.kalitesiz, m.yeni + m.kalitesiz) + ' (SPAM, TRASH vb.)']
+      ['Kalitesiz Data', m.kalitesiz, pct(m.kalitesiz, m.yeni + m.kalitesiz) + ' (SPAM, TRASH, Wrong Number vb.)']
     ];
     $('cards').innerHTML = items.map((i) => '<div class="kpi"><div class="l">' + esc(i[0]) + '</div><div class="v">' + esc(i[1]) + '</div><div class="s">' + esc(i[2]) + '</div></div>').join('');
   }
@@ -281,7 +281,7 @@
     const x = rf.result || {};
     if (x.skipped) return { t: 'Başka bir güncelleme şu an çalışıyor, birkaç dakika sonra tekrar deneyin.', err: true };
     if (x.complete === false) return { t: 'Güncelleme YARIM kaldı (süre doldu). Tekrar "Veriyi Şimdi Güncelle"ye basın.', err: true };
-    return { t: 'Kommo güncellendi: ' + (x.changed || 0) + ' lead değişti.', err: false };
+    return { t: 'Kommo güncellendi: ' + (x.changed || 0) + ' lead değişti, ' + (x.tagged || 0) + ' tanesi etiketli.' + (x.changed > 20 && !x.tagged ? ' UYARI: hiç etiket gelmedi.' : ''), err: !!(x.changed > 20 && !x.tagged) };
   }
 
   function srcLabel() {
