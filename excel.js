@@ -26,7 +26,8 @@
     function head(ws, title) {
       ws.getCell('A1').value = brand + ' - ' + title;
       ws.getCell('A1').font = { name: FONT, bold: true, size: 14, color: { argb: NAVY } };
-      ws.getCell('A2').value = 'Dönem: ' + period + (rep.meta.eskiDahil === false ? ' (Eski datalar dahil değil)' : '');
+      ws.getCell('A2').value = 'Dönem: ' + period + (rep.meta.eskiMod === 'off' ? ' (Eski datalar dahil değil)' : rep.meta.eskiMod === 'all' ? ' (Eski datalar: booklama tarihi dönem dışı olanlar dahil)' : '') +
+        ((rep.meta.sources && rep.meta.sources.length) ? ' | Kaynak: ' + rep.meta.sources.join(', ') : '');
       ws.getCell('A2').font = { name: FONT, italic: true, size: 10, color: { argb: 'FF595959' } };
     }
 

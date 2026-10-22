@@ -64,6 +64,17 @@
   .seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
   .seg button[aria-pressed=true]:hover { background: var(--accent); }
 
+  .src { position: relative; }
+  .src summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 190px; font-weight: 500; color: var(--ink); background: #fff; border: 1px solid #b9c7d9; border-radius: var(--r); padding: 8px 12px; min-height: 42px; }
+  .src summary::-webkit-details-marker { display: none; }
+  .src summary::after { content: ""; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg) translateY(-2px); }
+  .src[open] summary { border-color: var(--accent); }
+  .src .pop { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; min-width: 260px; max-height: 340px; overflow: auto; background: #fff; border: 1px solid var(--line); border-radius: var(--r); box-shadow: 0 8px 24px rgba(23,50,90,.16); padding: 8px; }
+  .src .pop label { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; font-size: 15px; font-weight: 500; color: var(--ink); cursor: pointer; min-height: 40px; }
+  .src .pop label:hover { background: var(--accent-soft); }
+  .src .pop input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .src .acts { display: flex; gap: 8px; padding: 4px 4px 8px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+  .src .acts button { min-height: 34px; padding: 2px 12px; font-size: 14px; }
   .check { display: flex; align-items: center; gap: 8px; min-height: 42px; font-size: 14px; font-weight: 600; color: var(--ink); }
   .check input { width: 18px; height: 18px; accent-color: var(--accent); }
 
@@ -143,6 +154,15 @@
         </label>
         <label class="field">Başlangıç <input type="date" id="from"></label>
         <label class="field">Bitiş <input type="date" id="to"></label>
+        <div class="field">Kaynak
+          <details class="src" id="srcBox">
+            <summary id="srcLabel">Tümü</summary>
+            <div class="pop">
+              <div class="acts"><button type="button" id="srcAll">Tümünü seç</button></div>
+              <div id="srcList"></div>
+            </div>
+          </details>
+        </div>
         <div class="field" id="eskiWrap">Eski datalar
           <div class="seg" role="group" aria-label="Eski datalar">
             <button type="button" data-eski="0" aria-pressed="false">Dahil değil</button>
@@ -179,6 +199,7 @@
 
   const $ = (id) => document.getElementById(id);
   let PIN = '', REPORT = null, activeTab = 0, ESKI = true;
+  let SRC_ALL = [], SRC_SEL = [], SRC_TIMER = null;   // SRC_SEL boş = tüm kaynaklar
 
   function ymd(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function setRange(a, b) { $('from').value = ymd(a); $('to').value = ymd(b); }
@@ -194,7 +215,12 @@
 
   async function api(action, extra) {
     const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ pin: PIN, action }, extra || {})) });
-    return res.json();
+    const txt = await res.text();
+    try { return JSON.parse(txt); }
+    catch (e) {
+      const t = txt.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+      throw new Error('Sunucu JSON yerine sayfa döndürdü (HTTP ' + res.status + '). Apps Script dağıtımı/erişim ayarını kontrol edin. Gelen: "' + t + '"');
+    }
   }
 
   function fmt(c) {
@@ -229,6 +255,7 @@
       ['Booked Oranı (Yeni)', pct(m.yeniBooked, m.yeni), 'yeni booked / yeni lead'],
       ['Ciro', '£' + Math.round(m.ciro).toLocaleString('tr-TR'), m.eskiDahil ? 'yeni + eski booklar' : 'sadece yeni leadler'],
       ['Lost (Yeni)', m.lost, pct(m.lost, m.yeni) + ' of yeni lead'],
+      ['NoAnswer15', m.noAnswer15, 'No Answer aşamasındaki ' + m.noAnswer + ' leadden etiketli'],
       ['Kalitesiz Data', m.kalitesiz, pct(m.kalitesiz, m.yeni + m.kalitesiz) + ' (SPAM, TRASH vb.)']
     ];
     $('cards').innerHTML = items.map((i) => '<div class="kpi"><div class="l">' + esc(i[0]) + '</div><div class="v">' + esc(i[1]) + '</div><div class="s">' + esc(i[2]) + '</div></div>').join('');
@@ -257,6 +284,27 @@
     return { t: 'Kommo güncellendi: ' + (x.changed || 0) + ' lead değişti.', err: false };
   }
 
+  function srcLabel() {
+    const n = SRC_SEL.length;
+    $('srcLabel').textContent = !n ? 'Tümü (' + SRC_ALL.length + ')' : n === 1 ? SRC_SEL[0] : n + ' kaynak seçili';
+  }
+  function renderSources(m) {
+    SRC_ALL = m.sourcesAll || [];
+    SRC_SEL = SRC_SEL.filter((x) => SRC_ALL.indexOf(x) >= 0);
+    $('srcList').innerHTML = SRC_ALL.map((s, i) =>
+      '<label><input type="checkbox" data-s="' + i + '"' + (!SRC_SEL.length || SRC_SEL.indexOf(s) >= 0 ? ' checked' : '') + '><span>' + esc(s) + '</span></label>').join('') ||
+      '<div class="note" style="padding:8px">Kaynak bulunamadı</div>';
+    srcLabel();
+  }
+  function srcChanged() {
+    const sel = [];
+    $('srcList').querySelectorAll('input[type=checkbox]').forEach((b) => { if (b.checked) sel.push(SRC_ALL[+b.dataset.s]); });
+    SRC_SEL = sel.length === SRC_ALL.length ? [] : sel;    // hepsi seçiliyse filtre yok
+    srcLabel();
+    clearTimeout(SRC_TIMER);
+    SRC_TIMER = setTimeout(() => { if (REPORT) loadReport(true); }, 500);   // Kommo'ya gitmez, sadece raporu yeniden hesaplar
+  }
+
   async function loadReport(skipRefresh) {
     const from = $('from').value, to = $('to').value;
     if (!from || !to || from > to) { showMsg('Geçerli bir tarih aralığı seçin.', true); return; }
@@ -270,10 +318,10 @@
         note = refreshNote(rf);
       }
       showMsg('Rapor hazırlanıyor...');
-      const r = await api('report', { from, to, clinic: $('clinic').value, eski: ESKI });
+      const r = await api('report', { from, to, clinic: $('clinic').value, eski: ESKI, sources: SRC_SEL });
       if (!r.ok) { showMsg(r.error || 'Hata', true); if (/PIN/.test(r.error || '')) logout(); $('go').disabled = false; return; }
       REPORT = r; activeTab = Math.min(activeTab, r.sheets.length - 1); showMsg(note ? note.t : '', note && note.err);
-      renderSync(r.lastSync); renderCards(r.meta); renderTabs();
+      renderSync(r.lastSync); renderSources(r.meta); renderCards(r.meta); renderTabs();
       $('xls').disabled = false;
     } catch (e) { showMsg('Bağlantı hatası: ' + e.message, true); }
     $('go').disabled = false;
@@ -286,7 +334,7 @@
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const m = REPORT.meta;
-    a.download = ({ MTT: 'mtt', LSA: 'lara_smile_standart', LSP: 'lara_smile_premium' }[m.clinic] || 'lara_smile') + '_rapor_' + m.from + '_' + m.to + (m.eskiMod === 'off' ? '_eskisiz' : m.eskiMod === 'all' ? '_eski_tumu' : '') + '.xlsx';
+    a.download = ({ MTT: 'mtt', LSA: 'lara_smile_standart', LSP: 'lara_smile_premium' }[m.clinic] || 'lara_smile') + '_rapor_' + m.from + '_' + m.to + (m.eskiMod === 'off' ? '_eskisiz' : m.eskiMod === 'all' ? '_eski_tumu' : '') + (m.sources && m.sources.length ? '_kaynak' : '') + '.xlsx';
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   }
@@ -320,6 +368,9 @@
     try { await enter($('pin').value.trim()); }
     catch (err) { $('loginErr').textContent = err.message; $('loginErr').hidden = false; }
   });
+  $('srcList').addEventListener('change', srcChanged);
+  $('srcAll').addEventListener('click', () => { $('srcList').querySelectorAll('input').forEach((b) => { b.checked = true; }); srcChanged(); });
+  document.addEventListener('click', (e) => { const d = $('srcBox'); if (d.open && !d.contains(e.target)) d.open = false; });
   $('go').addEventListener('click', () => loadReport(false));
   $('xls').addEventListener('click', downloadXlsx);
   $('refresh').addEventListener('click', refreshData);
